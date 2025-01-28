@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p $PORT",
     "lint": "next lint",
-    "heroku-postbuild": "npm install --legacy-peer-deps --include=dev && npm run build"
+    "heroku-postbuild": "npm install --legacy-peer-deps && npm run build"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.1",
