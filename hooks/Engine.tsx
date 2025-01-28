@@ -22,7 +22,6 @@ export const useEngine = (
     const [mateIn, setMateIn] = useState<string | null | undefined>(null);
     const messageBufferRef = useRef<string[]>([]);
     const [favoredSide, setFavoredSide] = useState<"w" | "b" | null>(null);
-    const [isAnalysisComplete, setIsAnalysisComplete] = useState<boolean>(false);
 
     useEffect(() => {
         if (!stockfishRef.current) {
@@ -104,13 +103,9 @@ export const useEngine = (
                 const engineMessage = e.data.toString();
                 messageBufferRef.current.push(engineMessage);
                 console.log(engineMessage);
-
-                // Check if the analysis is complete
-                if (engineMessage.includes("bestmove")) {
-                    setIsAnalysisComplete(true);
-                }
-
                 // Process messages in the buffer
+
+                // Inside your message handler processing loop:
                 while (messageBufferRef.current.length > 0) {
                     const msg = messageBufferRef.current.shift();
                     if (msg) {
@@ -130,7 +125,7 @@ export const useEngine = (
                             setMateIn(mateMatch[1].toString());
                         }
 
-                        if (scoreMatch && isAnalysisComplete) {
+                        if (scoreMatch) {
                             const rawScore = parseInt(scoreMatch[1], 10);
                             const currentTurn = game.turn();
 
@@ -156,7 +151,7 @@ export const useEngine = (
 
             currentWorker.onmessage = messageHandler;
         }, 100);
-    }, [depth, currentFen, game, threads, favoredSide, isAnalysisComplete]);
+    }, [depth, currentFen, game, threads, favoredSide]);
 
     return {
         message,

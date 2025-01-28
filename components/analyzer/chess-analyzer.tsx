@@ -28,7 +28,7 @@ import {
     RotateCcw,
     User,
 } from "lucide-react";
-import { AudioLinks } from "@/data/playbackAudio"; 
+import { AudioLinks } from "@/data/playbackAudio";
 import { JSX } from "react/jsx-runtime";
 
 const ChessApp = () => {
@@ -52,12 +52,8 @@ const ChessApp = () => {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
 
-    const { message, formattedScore, mateIn, favoredSide, setMateIn } = useEngine(
-        "/stockfish/stockfish.js",
-        depth,
-        game,
-        10
-    );
+    const { message, formattedScore, mateIn, favoredSide, setMateIn } =
+        useEngine("/stockfish/stockfish.js", depth, game, 10);
 
     // Memoized callbacks
     const handlePlayback = useCallback(
@@ -221,7 +217,7 @@ const ChessApp = () => {
     const handleReset = useCallback(() => {
         setCheckmateMessage("");
         setGame(new Chess());
-        setMateIn(null)
+        setMateIn(null);
         setCheckmateState(false);
         setHighlightedSquares({});
         setGameHistory([]);
