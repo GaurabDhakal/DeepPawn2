@@ -23,6 +23,7 @@ export const useEngine = (
     const messageBufferRef = useRef<string[]>([]);
     const [favoredSide, setFavoredSide] = useState<"w" | "b" | null>(null);
 
+    const currentFen = game.fen();
     useEffect(() => {
         if (!stockfishRef.current) {
             const stockfish = new Worker(stockfishPath);
@@ -32,18 +33,6 @@ export const useEngine = (
             stockfish.onmessage = (e) => {
                 const engineMessage = e.data.toString();
                 messageBufferRef.current.push(engineMessage);
-
-                if (engineMessage === "uciok") {
-                    stockfish.postMessage(
-                        "setoption name Skill Level value 20"
-                    );
-                    stockfish.postMessage("setoption name MultiPV value 3");
-                    stockfish.postMessage("setoption name Hash value 128");
-                    stockfish.postMessage(
-                        `setoption name Threads value ${threads}`
-                    );
-                }
-
                 // Process messages in the buffer
                 while (messageBufferRef.current.length > 0) {
                     const msg = messageBufferRef.current.shift();
@@ -59,12 +48,12 @@ export const useEngine = (
             stockfish.onerror = (error) => {
                 console.error("Stockfish worker error:", error);
             };
-
             stockfish.postMessage("uci");
         }
 
         return () => {
             if (stockfishRef.current) {
+                stockfishRef.current.postMessage("setoption name Clear Hash");
                 stockfishRef.current.postMessage("stop");
                 stockfishRef.current.postMessage("quit");
                 stockfishRef.current.terminate();
@@ -74,9 +63,7 @@ export const useEngine = (
                 clearTimeout(analysisTimeoutRef.current);
             }
         };
-    }, [stockfishPath, threads]);
-
-    const currentFen = game.fen();
+    }, [stockfishPath]);
 
     useEffect(() => {
         const currentWorker = stockfishRef.current;
@@ -92,11 +79,16 @@ export const useEngine = (
 
         analysisTimeoutRef.current = setTimeout(() => {
             const currentFen = game.fen();
-
-            currentWorker.postMessage("ucinewgame");
+            /**
+             * Use this when change in game instance
+             */
+            // currentWorker.postMessage("ucinewgame");
+            currentWorker.postMessage(
+                `setoption name Threads value ${threads}`
+            );
             currentWorker.postMessage(`position fen ${currentFen}`);
             currentWorker.postMessage(
-                `go depth ${Math.min(depth, 25)} searchmovetime 6000`
+                `go depth ${Math.min(depth, 25)} searchmovetime 3000`
             );
 
             const messageHandler = (e: MessageEvent) => {

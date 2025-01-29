@@ -36,10 +36,15 @@ const ChessApp = () => {
     const [checkmateState, setCheckmateState] = useState<boolean>(false);
     const [orientation, setOrientation] = useState<BoardOrientation>("white");
     const [gameHistory, setGameHistory] = useState<Move[]>([]);
+    const [possibleMoves, setPossibleMoves] = useState<{
+        [square: string]: React.CSSProperties;
+    }>({});
     const [currentMoveIndex, setCurrentMoveIndex] = useState<number>(-1);
     const [checkmateMessage, setCheckmateMessage] = useState<string>("");
     const [stockfishState, setStockfishState] = useState(false);
     const [bestMove, setBestMove] = useState<string | undefined>(undefined);
+    const [selectedPiece, setSelectedPiece] = useState<Square | null>(null);
+
     const [depth, setDepth] = useState<number>(10);
     const [highlightedSquares, setHighlightedSquares] = useState<{
         [key: string]: React.CSSProperties;
@@ -53,7 +58,7 @@ const ChessApp = () => {
     );
 
     const { message, formattedScore, mateIn, favoredSide, setMateIn } =
-        useEngine("/stockfish/stockfish.js", depth, game, 10);
+        useEngine("/from-chess-com/stockfish-17-aaa11cd.js", depth, game, 12);
 
     // Memoized callbacks
     const handlePlayback = useCallback(
@@ -115,6 +120,7 @@ const ChessApp = () => {
             }
             handlePlayback(move, gameCopy); // <-- Pass BOTH move and gameCopy
             setRightClickedSquares({});
+            setPossibleMoves({});
             setHighlightedSquares({
                 [sourceSquare]: { backgroundColor: "rgba(255, 238, 56, 0.4)" },
                 [targetSquare]: { backgroundColor: "rgba(255, 238, 56, 0.4)" },
@@ -189,9 +195,71 @@ const ChessApp = () => {
         [currentMoveIndex, gameHistory]
     );
 
-    const onSquareClick = useCallback(() => {
-        setRightClickedSquares({});
-    }, []);
+    const onSquareClick = useCallback(
+        (square: Square) => {
+            const moves = game.moves({
+                square,
+                verbose: true,
+            }) as Move[];
+
+            if (
+                selectedPiece &&
+                game.get(selectedPiece)?.color === game.turn()
+            ) {
+                const move = game.move({
+                    from: selectedPiece,
+                    to: square,
+                    promotion: "q",
+                });
+
+                if (move) {
+                    handlePlayback(move, game);
+                    setRightClickedSquares({});
+                    setPossibleMoves({});
+                    setHighlightedSquares({
+                        [selectedPiece]: {
+                            backgroundColor: "rgba(255, 238, 56, 0.4)",
+                        },
+                        [square]: {
+                            backgroundColor: "rgba(255, 238, 56, 0.4)",
+                        },
+                    });
+                    setGameHistory((prev) => [...prev, move]);
+                    setCurrentMoveIndex((prev) => prev + 1);
+                    setSelectedPiece(null);
+                    return;
+                }
+            }
+
+            if (game.get(square)?.color === game.turn()) {
+                const newHighlightedSquares: {
+                    [square: string]: React.CSSProperties;
+                } = {
+                    [square]: { backgroundColor: "rgba(255, 255, 0, 0.4)" },
+                };
+
+                moves.forEach((move) => {
+                    newHighlightedSquares[move.to] = {
+                        background:
+                            game &&
+                            game.get(move.to) &&
+                            game?.get(move.to)?.color !== game?.get(square)?.color
+                                ? "radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)"
+                                : "radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)",
+                        borderRadius: "50%",
+                    };
+                });
+
+                setPossibleMoves(newHighlightedSquares);
+                setSelectedPiece(square);
+                setRightClickedSquares({});
+            } else if (selectedPiece) {
+                setPossibleMoves({});
+                setSelectedPiece(null);
+            }
+        },
+        [game, selectedPiece, handlePlayback]
+    );
 
     const onSquareRightClick = useCallback((square: Square) => {
         setRightClickedSquares((prev) => ({
@@ -323,6 +391,7 @@ const ChessApp = () => {
                                 customSquareStyles={{
                                     ...highlightedSquares,
                                     ...rightClickedSquares,
+                                    ...possibleMoves,
                                 }}
                             />
                             <div className="absolute -top-10 right-0 flex space-x-2">

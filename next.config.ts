@@ -1,18 +1,46 @@
 import { NextConfig } from "next";
-import path from 'path';
+import path from "path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    // Add WASM support
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: "asset/resource",
+    });
+
+    // Enable async WebAssembly
     config.experiments = { asyncWebAssembly: true, ...config.experiments };
-    config.resolve.alias['@'] = path.join(__dirname);
+
+    // Add path alias
+    config.resolve.alias["@"] = path.join(__dirname);
+
+    // Fix for "Module not found: Can't resolve 'fs'" in the browser
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+
     return config;
   },
+
   async headers() {
     return [
       {
-        // Apply these headers to all routes
-        source: "/:path*",
+        source: "/:path*.wasm", // ✅ Apply this header ONLY to .wasm files
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/wasm",
+          },
+        ],
+      },
+      {
+        source: "/:path*", // ✅ Apply security headers to everything else
         headers: [
           {
             key: "Cross-Origin-Opener-Policy",
@@ -28,4 +56,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
