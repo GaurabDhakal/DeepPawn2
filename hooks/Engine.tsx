@@ -13,7 +13,7 @@ export const useEngine = (
     stockfishPath: string,
     depth: number,
     game: ChessInstance,
-    threads: number
+    threads: number,
 ) => {
     const stockfishRef = useRef<Worker | null>(null);
     const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -22,6 +22,7 @@ export const useEngine = (
     const [mateIn, setMateIn] = useState<string | null | undefined>(null);
     const messageBufferRef = useRef<string[]>([]);
     const [favoredSide, setFavoredSide] = useState<"w" | "b" | null>(null);
+    
 
     const currentFen = game.fen();
     useEffect(() => {
@@ -94,7 +95,7 @@ export const useEngine = (
             const messageHandler = (e: MessageEvent) => {
                 const engineMessage = e.data.toString();
                 messageBufferRef.current.push(engineMessage);
-                console.log(engineMessage);
+                // console.log(engineMessage);
                 // Process messages in the buffer
 
                 // Inside your message handler processing loop:

@@ -44,8 +44,8 @@ const ChessApp = () => {
     const [stockfishState, setStockfishState] = useState(false);
     const [bestMove, setBestMove] = useState<string | undefined>(undefined);
     const [selectedPiece, setSelectedPiece] = useState<Square | null>(null);
-
     const [depth, setDepth] = useState<number>(10);
+
     const [highlightedSquares, setHighlightedSquares] = useState<{
         [key: string]: React.CSSProperties;
     }>({});
@@ -58,7 +58,7 @@ const ChessApp = () => {
     );
 
     const { message, formattedScore, mateIn, favoredSide, setMateIn } =
-        useEngine("/from-chess-com/stockfish-17-aaa11cd.js", depth, game, 12);
+        useEngine("/from-chess-com/stockfish-17-aaa11cd.js", depth, game, 1);
 
     // Memoized callbacks
     const handlePlayback = useCallback(
@@ -197,6 +197,7 @@ const ChessApp = () => {
 
     const onSquareClick = useCallback(
         (square: Square) => {
+            setRightClickedSquares({});
             const moves = game.moves({
                 square,
                 verbose: true,
@@ -214,7 +215,6 @@ const ChessApp = () => {
 
                 if (move) {
                     handlePlayback(move, game);
-                    setRightClickedSquares({});
                     setPossibleMoves({});
                     setHighlightedSquares({
                         [selectedPiece]: {
@@ -227,6 +227,7 @@ const ChessApp = () => {
                     setGameHistory((prev) => [...prev, move]);
                     setCurrentMoveIndex((prev) => prev + 1);
                     setSelectedPiece(null);
+
                     return;
                 }
             }
@@ -243,7 +244,8 @@ const ChessApp = () => {
                         background:
                             game &&
                             game.get(move.to) &&
-                            game?.get(move.to)?.color !== game?.get(square)?.color
+                            game?.get(move.to)?.color !==
+                                game?.get(square)?.color
                                 ? "radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)"
                                 : "radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)",
                         borderRadius: "50%",
