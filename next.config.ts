@@ -39,6 +39,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      
       {
         source: "/:path*", // ✅ Apply security headers to everything else
         headers: [

@@ -56,6 +56,7 @@ const ChessApp = () => {
     const [fen, setFen] = useState<string>(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
+    const [currentMove, setCurrentMove] = useState<string>();
 
     const { message, formattedScore, mateIn, favoredSide, setMateIn } =
         useEngine("/from-chess-com/stockfish-17-aaa11cd.js", depth, game, 1);
@@ -93,6 +94,7 @@ const ChessApp = () => {
                 playAudio("assets/sound/error.mp3");
                 return false;
             }
+
             setBestMove(undefined);
             const gameCopy = new Chess(game.fen());
             const promotionPiece = piece[1].toLowerCase() as
@@ -105,6 +107,7 @@ const ChessApp = () => {
                 to: targetSquare,
                 promotion: promotionPiece,
             });
+            setCurrentMove(move?.san);
             if (move === null) {
                 playAudio(AudioLinks["invalid-move"], 0, 0.5);
                 return false;
@@ -118,7 +121,7 @@ const ChessApp = () => {
                 setCheckmateState(false);
                 return false;
             }
-            handlePlayback(move, gameCopy); // <-- Pass BOTH move and gameCopy
+            handlePlayback(move, gameCopy);
             setRightClickedSquares({});
             setPossibleMoves({});
             setHighlightedSquares({
@@ -288,6 +291,7 @@ const ChessApp = () => {
         setCheckmateMessage("");
         setGame(new Chess());
         setMateIn(null);
+        setCurrentMove("");
         setCheckmateState(false);
         setHighlightedSquares({});
         setGameHistory([]);
@@ -346,15 +350,19 @@ const ChessApp = () => {
                         checkMateState={checkmateState}
                     />
                     <ScrollArea className="flex-grow">
-                        <div className="space-y-2">
+                        <div className=" mt-10 shadow-md rounded">
                             <div className="p-2 hover:bg-accent rounded-md">
-                                <div className="font-medium">Main Line</div>
-                                <div className="text-sm text-muted-foreground">
+                                <div>
                                     {bestMove
                                         ? `Best move: ${bestMove}`
                                         : checkmateState
                                         ? "Game over."
                                         : "Calculating...."}
+                                </div>
+                                <div>
+                                    {currentMove && (
+                                        <div>{currentMove} was played</div>
+                                    )}
                                 </div>
                             </div>
                         </div>

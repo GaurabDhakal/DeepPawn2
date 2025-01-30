@@ -13,7 +13,7 @@ export const useEngine = (
     stockfishPath: string,
     depth: number,
     game: ChessInstance,
-    threads: number,
+    threads: number
 ) => {
     const stockfishRef = useRef<Worker | null>(null);
     const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -22,33 +22,13 @@ export const useEngine = (
     const [mateIn, setMateIn] = useState<string | null | undefined>(null);
     const messageBufferRef = useRef<string[]>([]);
     const [favoredSide, setFavoredSide] = useState<"w" | "b" | null>(null);
-    
+    const [debugCount, setDebugCount] = useState<number>(0);
 
     const currentFen = game.fen();
     useEffect(() => {
         if (!stockfishRef.current) {
             const stockfish = new Worker(stockfishPath);
             stockfishRef.current = stockfish;
-
-            // Listen for the UCIOK message before setting options
-            stockfish.onmessage = (e) => {
-                const engineMessage = e.data.toString();
-                messageBufferRef.current.push(engineMessage);
-                // Process messages in the buffer
-                while (messageBufferRef.current.length > 0) {
-                    const msg = messageBufferRef.current.shift();
-
-                    if (msg) {
-                        if (msg.includes("Threads")) {
-                            console.log("Thread Info from Stockfish:", msg);
-                        }
-                    }
-                }
-            };
-
-            stockfish.onerror = (error) => {
-                console.error("Stockfish worker error:", error);
-            };
             stockfish.postMessage("uci");
         }
 
@@ -83,68 +63,62 @@ export const useEngine = (
             /**
              * Use this when change in game instance
              */
-            // currentWorker.postMessage("ucinewgame");
+            currentWorker.postMessage("ucinewgame");
             currentWorker.postMessage(
                 `setoption name Threads value ${threads}`
             );
             currentWorker.postMessage(`position fen ${currentFen}`);
             currentWorker.postMessage(
-                `go depth ${Math.min(depth, 25)} searchmovetime 3000`
+                `go depth ${Math.min(depth, 25)} searchmovetime 6000`
             );
-
             const messageHandler = (e: MessageEvent) => {
                 const engineMessage = e.data.toString();
+                if (engineMessage) {
+                    console.log(engineMessage);
+                    const scoreMatch = engineMessage.match(/score cp (-?\d+)/);
+                    const mateMatch = engineMessage.match(/score mate (-?\d+)/);
+
+                    if (mateMatch) {
+                        const mateValue = parseInt(mateMatch[1], 10);
+                        // Determine favored side based on mate value sign
+                        let mateFavoredSide: "w" | "b" = game.turn();
+                        if (mateValue < 0) {
+                            mateFavoredSide = game.turn() === "w" ? "b" : "w";
+                        }
+                        setFavoredSide(mateFavoredSide);
+                        setMateIn(mateMatch[1].toString());
+                    }
+
+                    if (scoreMatch) {
+                        const rawScore = parseInt(scoreMatch[1], 10);
+                        const currentTurn = game.turn();
+
+                        // Calculate adjusted score relative to White's perspective
+                        const adjustedScore =
+                            currentTurn === "b" ? -rawScore : rawScore;
+
+                        // Determine favored side based on adjusted score
+                        const favored = adjustedScore > 0 ? "w" : "b";
+                        setFavoredSide(favored);
+
+                        const formattedScore = formatScore(
+                            rawScore,
+                            currentTurn
+                        );
+                        setFormattedScore(formattedScore);
+                    }
+
+                    setMessage(engineMessage);
+                }
                 messageBufferRef.current.push(engineMessage);
                 // console.log(engineMessage);
-                // Process messages in the buffer
-
-                // Inside your message handler processing loop:
-                while (messageBufferRef.current.length > 0) {
-                    const msg = messageBufferRef.current.shift();
-                    if (msg) {
-                        const scoreMatch = msg.match(/score cp (-?\d+)/);
-                        const mateMatch = msg.match(/score mate (-?\d+)/);
-
-                        if (mateMatch) {
-                            const mateValue = parseInt(mateMatch[1], 10);
-                            // Determine favored side based on mate value sign
-                            let mateFavoredSide: "w" | "b" = game.turn();
-                            if (mateValue < 0) {
-                                mateFavoredSide =
-                                    game.turn() === "w" ? "b" : "w";
-                            }
-                            console.log(favoredSide);
-                            setFavoredSide(mateFavoredSide);
-                            setMateIn(mateMatch[1].toString());
-                        }
-
-                        if (scoreMatch) {
-                            const rawScore = parseInt(scoreMatch[1], 10);
-                            const currentTurn = game.turn();
-
-                            // Calculate adjusted score relative to White's perspective
-                            const adjustedScore =
-                                currentTurn === "b" ? -rawScore : rawScore;
-
-                            // Determine favored side based on adjusted score
-                            const favored = adjustedScore > 0 ? "w" : "b";
-                            setFavoredSide(favored);
-
-                            const formattedScore = formatScore(
-                                rawScore,
-                                currentTurn
-                            );
-                            setFormattedScore(formattedScore);
-                        }
-
-                        setMessage(msg);
-                    }
-                }
+                console.log(`This has been triggered ${debugCount} times. `);
+                setDebugCount((prev) => prev + 1);
             };
 
             currentWorker.onmessage = messageHandler;
         }, 100);
-    }, [depth, currentFen, game, threads, favoredSide]);
+    }, [depth, currentFen, game, threads]);
 
     return {
         message,
