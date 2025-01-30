@@ -107,7 +107,6 @@ const ChessApp = () => {
                 to: targetSquare,
                 promotion: promotionPiece,
             });
-            setCurrentMove(move?.san);
             if (move === null) {
                 playAudio(AudioLinks["invalid-move"], 0, 0.5);
                 return false;
@@ -128,6 +127,7 @@ const ChessApp = () => {
                 [sourceSquare]: { backgroundColor: "rgba(255, 238, 56, 0.4)" },
                 [targetSquare]: { backgroundColor: "rgba(255, 238, 56, 0.4)" },
             });
+            setCurrentMove(move?.san);
             setGame(gameCopy); // Update state AFTER handling playback
             setGameHistory((prev) => [...prev, move]);
             setCurrentMoveIndex((prev) => prev + 1);
